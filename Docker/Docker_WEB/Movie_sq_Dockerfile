@@ -1,0 +1,5 @@
+FROM openjdk:11
+VOLUME /tmp
+WORKDIR /
+COPY MoiveSquare1/target/*.jar /movie_sq.jar
+ENTRYPOINT ["java","-jar","/movie_sq.jar"]

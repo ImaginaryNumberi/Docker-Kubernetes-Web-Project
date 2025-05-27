@@ -1,0 +1,14 @@
+server:
+  port: 6795
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://moviesquare-mysql:3306/movie_sq
+    username: root
+    password: 1234
+    hikari:
+      initialization-fail-timeout: -1   # DB 초기 연결 실패 시 무한 재시도
+
+mybatis:
+  mapper-locations: classpath:mappers/**/*.xml

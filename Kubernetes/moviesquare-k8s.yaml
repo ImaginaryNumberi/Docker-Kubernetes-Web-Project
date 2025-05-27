@@ -1,0 +1,122 @@
+# 1. MySQL 저장소 정의
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: moviesquare-mysql-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/home/kopo/MovieSquare-K8s/data/MovieSquare-mysql"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: moviesquare-mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+# 2. MySQL Deployment 및 서비스
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moviesquare-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moviesquare-mysql
+  template:
+    metadata:
+      labels:
+        app: moviesquare-mysql
+    spec:
+      containers:
+        - name: mysql
+          image: imaginaryi/movie-mysql-8.4.4:1.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "1234"
+            - name: MYSQL_DATABASE
+              value: "movie_sq"
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: moviesquare-mysql-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: moviesquare-mysql
+spec:
+  selector:
+    app: moviesquare-mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+
+# 3. Spring Boot 웹 앱
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moviesquare-web-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moviesquare-web-app
+  template:
+    metadata:
+      labels:
+        app: moviesquare-web-app
+    spec:
+      containers:
+        - name: web-app
+          image: imaginaryi/moviesq-springboot-java11-ku8:1.0
+          ports:
+            - containerPort: 6795
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://moviesquare-mysql:3306/movie_sq"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "1234"
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "com.mysql.cj.jdbc.Driver"
+            - name: SERVER_PORT
+              value: "6795"
+            - name: MYBATIS_MAPPER_LOCATIONS
+              value: "classpath:mappers/**/*.xml"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: moviesquare-web-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: moviesquare-web-app
+  ports:
+    - protocol: TCP
+      port: 6795
+      targetPort: 6795

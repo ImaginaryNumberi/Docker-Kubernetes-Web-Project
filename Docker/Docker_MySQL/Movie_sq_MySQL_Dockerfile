@@ -1,0 +1,4 @@
+FROM mysql:8.4.4
+#COPY 01-init.sql /docker-entrypoint-initdb.d/
+#COPY 02-dump-movie_sq.sql /docker-entrypoint-initdb.d/
+COPY my.cnf /etc/my.cnf
